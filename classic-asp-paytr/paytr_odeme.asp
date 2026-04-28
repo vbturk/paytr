@@ -29,6 +29,56 @@ Else
 End If
 
 '---------------------------------------------------------
+' SHA256 ve Yardımcı Fonksiyonlar (Güvenli .NET CryptoAPI)
+'---------------------------------------------------------
+
+Function sha256hashBytes(aBytes)
+    Dim sha256
+    Set sha256 = CreateObject("System.Security.Cryptography.SHA256Managed")
+    sha256.Initialize()
+    sha256hashBytes = sha256.ComputeHash_2((aBytes))
+End Function
+
+Function stringToUTFBytes(aString)
+    Dim UTF8
+    Set UTF8 = CreateObject("System.Text.UTF8Encoding")
+    stringToUTFBytes = UTF8.GetBytes_4(aString)
+End Function
+
+Function bytesToHex(aBytes)
+    Dim hexStr, x
+    For x = 1 To LenB(aBytes)
+        hexStr = Hex(AscB(MidB((aBytes), x, 1)))
+        If Len(hexStr) = 1 Then hexStr = "0" & hexStr
+        bytesToHex = bytesToHex & hexStr
+    Next
+End Function
+
+Function BytesToBase64(varBytes)
+    With CreateObject("MSXML2.DomDocument").CreateElement("b64")
+        .dataType = "bin.base64"
+        .nodeTypedValue = varBytes
+        BytesToBase64 = .Text
+    End With
+End Function
+
+' Ana SHA256 Fonksiyonu - String input alır, HEX output verir
+Function SHA256(inputString)
+    Dim utfBytes, hashBytes
+    utfBytes = stringToUTFBytes(inputString)
+    hashBytes = sha256hashBytes(utfBytes)
+    SHA256 = UCase(bytesToHex(hashBytes))
+End Function
+
+' Base64 olarak SHA256 hash üretmek isterseniz:
+Function SHA256_Base64(inputString)
+    Dim utfBytes, hashBytes
+    utfBytes = stringToUTFBytes(inputString)
+    hashBytes = sha256hashBytes(utfBytes)
+    SHA256_Base64 = BytesToBase64(hashBytes)
+End Function
+
+'---------------------------------------------------------
 ' ÖRNEK SİPARİŞ BİLGİLERİ
 ' Gerçek uygulamada bu verileri veritabanından veya form'dan alın
 '---------------------------------------------------------
@@ -175,42 +225,6 @@ End Function
 '---------------------------------------------------------
 ' YARDIMCI FONKSİYONLAR
 '---------------------------------------------------------
-
-' SHA256 Hash Fonksiyonu
-Function SHA256(inputString)
-    Dim objStream, objEncoder, arrData, hashBytes, i, hexOutput
-    Set objStream = Server.CreateObject("ADODB.Stream")
-    objStream.Type = 2 ' adTypeText
-    objStream.CharSet = "utf-8"
-    objStream.Open
-    objStream.WriteText inputString
-    
-    Set objEncoder = Server.CreateObject("System.Text.UTF8Encoding").GetBytes_4(inputString)
-    
-    ' Windows'ta CryptoAPI kullanarak SHA256 hesaplama
-    Dim oHasher, dataArray, binaryData
-    Set oHasher = Server.CreateObject("CAPICOM.HashedData")
-    oHasher.Algorithm = 4 ' CAPICOM_HASH_ALGORITHM_SHA_256
-    oHasher.Hash inputString
-    SHA256 = LCase(oHasher.Value)
-    Set oHasher = Nothing
-    
-    Set objStream = Nothing
-End Function
-
-' Alternatif SHA256 (CAPICOM yoksa)
-Function SHA256_Alternative(inputString)
-    ' Not: Classic ASP'de SHA256 için genellikle third-party komponent gerekir
-    ' Veya .NET assembly çağrılabilir
-    ' Bu örnek basitleştirilmiş bir versiyondur
-    Dim objXMLHTTP, url
-    url = "https://api.example.com/hash?data=" & Server.URLEncode(inputString)
-    Set objXMLHTTP = Server.CreateObject("MSXML2.ServerXMLHTTP")
-    objXMLHTTP.Open "GET", url, False
-    objXMLHTTP.Send
-    SHA256_Alternative = objXMLHTTP.ResponseText
-    Set objXMLHTTP = Nothing
-End Function
 
 ' Rastgele salt oluşturma
 Function GenerateRandomSalt()
